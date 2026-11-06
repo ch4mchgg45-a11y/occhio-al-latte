@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Occhio al Latte</title>
+  <meta name="description" content="Inquadra il codice a barre o gli ingredienti: ti dico se c'è latte.">
+  <meta name="theme-color" content="#14202b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Occhio Latte">
+  <link rel="apple-touch-icon" href="icona-180.png">
+  <link rel="icon" href="icona-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- SCHERMATA INIZIALE -->
+  <section id="inizio" class="inizio">
+    <div class="inizio-box">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M22 6h20v8l6 10v30a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V24l6-10z" fill="#fff"/><path d="M16 34h32v20a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6z" fill="#7cc4ff"/><circle cx="32" cy="44" r="9" fill="#14202b"/><circle cx="32" cy="44" r="4" fill="#fff"/></svg>
+      </div>
+      <h1>Occhio al Latte</h1>
+      <p class="intro">Ti dico se c'è il latte.</p>
+      <button id="avvia" class="btn enorme"><span class="ic-grande">📷</span>Controlla un prodotto</button>
+      <p class="spiega">Poi punta il telefono sul <b>codice a barre</b><br>oppure sugli <b>ingredienti</b>.</p>
+      <p id="errore-camera" class="errore" hidden></p>
+      <button id="mostra-altro" class="link-chiaro" type="button">Non funziona la fotocamera?</button>
+      <div id="altro-modo" hidden>
+      <details class="manuale">
+        <summary>Scrivi il codice a barre a mano</summary>
+        <form id="form-codice" class="riga-codice">
+          <input id="codice-manuale" inputmode="numeric" pattern="[0-9]*" placeholder="es. 8076809513753" autocomplete="off">
+          <button class="btn">Cerca</button>
+        </form>
+      </details>
+      <details class="manuale">
+        <summary>Incolla o scrivi gli ingredienti</summary>
+        <form id="form-testo">
+          <textarea id="testo-manuale" rows="4" placeholder="Ingredienti: farina, zucchero, latte in polvere…"></textarea>
+          <button class="btn">Controlla</button>
+        </form>
+      </details>
+      </div>
+      <p class="nota-piccola">È un aiuto, non una garanzia: nel dubbio guarda l'etichetta.</p>
+    </div>
+  </section>
+
+  <!-- FOTOCAMERA -->
+  <section id="camera" class="camera" hidden>
+    <video id="video" playsinline muted autoplay></video>
+    <div class="mirino-wrap"><div id="mirino" class="mirino"><span></span><span></span><span></span><span></span><div class="laser"></div></div></div>
+
+    <div class="barra-alta">
+      <button id="chiudi" class="tondo" aria-label="Chiudi fotocamera">✕</button>
+      <div id="stato" class="stato">Inquadra il codice a barre o gli ingredienti</div>
+      <button id="torcia" class="tondo" aria-label="Torcia" hidden>🔦</button>
+    </div>
+
+    <!-- risultato in diretta della lettura del testo -->
+    <div id="live" class="live" hidden>
+      <div id="live-verdetto" class="live-verdetto grigio"></div>
+      <div id="live-voci" class="voci"></div>
+      <div class="live-piede">
+        <button id="live-reset" class="btn chiaro">↺ Ricomincia</button>
+        <button id="live-dettagli" class="link">Dettagli</button>
+      </div>
+    </div>
+    <div id="carica-ocr" class="carica-ocr" hidden>Preparo la lettura del testo… <span id="ocr-perc"></span></div>
+  </section>
+
+  <!-- SCHEDA RISULTATO -->
+  <div id="velo" class="velo" hidden></div>
+  <section id="scheda" class="scheda" hidden aria-live="polite">
+    <div class="maniglia"></div>
+    <div id="scheda-contenuto"></div>
+    <div class="scheda-bottoni">
+      <button id="altro" class="btn grande">Controlla un altro prodotto</button>
+      <button id="leggi-ingr" class="btn grande chiaro">Leggi anche gli ingredienti</button>
+    </div>
+  </section>
+
+  <canvas id="tela" hidden></canvas>
+
+  <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script src="js/analisi.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

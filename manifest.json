@@ -1,0 +1,15 @@
+{
+  "name": "Occhio al Latte",
+  "short_name": "Occhio Latte",
+  "description": "Inquadra il codice a barre o gli ingredienti: ti dico se c'è latte.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14202b",
+  "theme_color": "#14202b",
+  "lang": "it",
+  "icons": [
+    { "src": "icona-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icona-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
