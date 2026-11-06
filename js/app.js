@@ -9,7 +9,7 @@
     stream: null, attivo: false, pausa: false,
     timerCodice: null, lettore: null, hints: null, giro: 0,
     ocr: null, ocrPronto: false, ocrAcc: null,
-    ultimoCodice: null, giroCamera: 0, ricerca: 0,
+    ultimoCodice: null, giroCamera: 0, ricerca: 0, modo: 'codice',
   };
 
   // ---------------------------------------------------------------------------
@@ -19,7 +19,8 @@
   const ICONE = { rosso: '🚫', arancio: '⚠️', giallo: '🔎', verde: '✅', blu: '✅', grigio: '❔' };
   // la risposta in una parola, grande, per capire al volo
   const PAROLA = { rosso: 'NO', arancio: 'ATTENZIONE', giallo: 'CONTROLLA', verde: 'VA BENE', blu: 'VA BENE', grigio: '…' };
-  const INVITO = 'Punta sul codice a barre o sugli ingredienti';
+  const INVITI = { codice: 'Inquadra il codice a barre', ingredienti: 'Inquadra la lista degli ingredienti' };
+  const invito = () => INVITI[S.modo];
   const stato = (t) => { $('#stato').textContent = t; };
   const attendi = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -67,6 +68,7 @@
         : 'Non riesco ad aprire la fotocamera (' + (e && e.name || 'errore') + ').');
     }
     video.srcObject = S.stream;
+    $('#camera').classList.add('modo-' + S.modo);
     $('#inizio').hidden = true;
     $('#camera').hidden = false;   // prima di play(): iPhone non avvia un video nascosto
     try { await video.play(); } catch (_) { /* iOS a volte parte da solo */ }
@@ -80,11 +82,27 @@
     try { localStorage.setItem('camera-ok', '1'); } catch (_) {}
     S.attivo = true; S.pausa = false;
     S.giroCamera++;
-    azzeraLettura();
-    stato(INVITO);
+    impostaModo('codice');   // si parte sempre dal codice a barre
     avviaCodici();
     avviaOcr();
   }
+
+  // due modalità: si legge solo il codice a barre, oppure solo gli ingredienti
+  function impostaModo(m) {
+    S.modo = m;
+    const cam = $('#camera');
+    cam.classList.toggle('modo-codice', m === 'codice');
+    cam.classList.toggle('modo-ingredienti', m === 'ingredienti');
+    for (const [id, nome] of [['#modo-codice', 'codice'], ['#modo-ingredienti', 'ingredienti']]) {
+      $(id).classList.toggle('attivo', m === nome);
+      $(id).setAttribute('aria-pressed', String(m === nome));
+    }
+    azzeraLettura();
+    stato(invito());
+    if (m === 'ingredienti' && S.attivo && !S.ocrPronto) avviaOcr();   // riprova se la prima volta non era partito
+  }
+  $('#modo-codice').addEventListener('click', () => impostaModo('codice'));
+  $('#modo-ingredienti').addEventListener('click', () => impostaModo('ingredienti'));
 
   function erroreCamera(msg) {
     const el = $('#errore-camera');
@@ -156,7 +174,7 @@
   }
 
   function leggiCodice() {
-    if (!S.attivo || S.pausa || document.hidden) return;
+    if (!S.attivo || S.pausa || document.hidden || S.modo !== 'codice') return;
     const z = zonaMirino(40);
     if (!z) return;
     const Z = window.ZXing;
@@ -297,10 +315,11 @@
   async function avviaOcr() {
     const giro = S.giroCamera;      // ogni apertura della fotocamera ha il suo ciclo
     await preparaOcr();
-    if (giro !== S.giroCamera || !S.attivo) return;
-    if (!S.ocrPronto) { stato('Leggo solo i codici a barre (manca internet per il testo)'); return; }
+    if (giro !== S.giroCamera || !S.attivo || S.cicloOcr === giro) return;   // un solo ciclo per volta
+    if (!S.ocrPronto) { if (S.modo === 'ingredienti') stato('Non riesco a leggere il testo: serve internet'); return; }
+    S.cicloOcr = giro;
     while (S.attivo && giro === S.giroCamera) {
-      if (S.pausa || document.hidden) { await attendi(300); continue; }
+      if (S.pausa || document.hidden || S.modo !== 'ingredienti') { await attendi(300); continue; }
       const z = zonaTesto();
       if (!z) { await attendi(300); continue; }
       // ritaglio del mirino, ingrandito e in bianco e nero per leggere meglio
@@ -310,7 +329,7 @@
       ctxOcr.drawImage(video, z.x, z.y, z.w, z.h, 0, 0, telaOcr.width, telaOcr.height);
       try {
         const { data } = await S.ocr.recognize(telaOcr);
-        if (S.attivo && !S.pausa && giro === S.giroCamera) unisciLettura(data.text || '');
+        if (S.attivo && !S.pausa && giro === S.giroCamera && S.modo === 'ingredienti') unisciLettura(data.text || '');
       } catch (_) {}
       await attendi(250);
     }
@@ -357,7 +376,7 @@
     stato(v.livello === 'grigio' ? 'Tieni fermo il telefono…' : 'Passa pure su tutta l\'etichetta');
   }
 
-  $('#live-reset').addEventListener('click', () => { azzeraLettura(); stato(INVITO); });
+  $('#live-reset').addEventListener('click', () => { azzeraLettura(); stato(invito()); });
   $('#live-dettagli').addEventListener('click', () => {
     const acc = S.ocrAcc;
     const abbastanza = acc.parole >= 15 || (acc.haIngredienti && acc.parole >= 8);
@@ -390,10 +409,10 @@
     $('#velo').hidden = true; $('#scheda').hidden = true;
     if (azzera) azzeraLettura();
     S.pausa = false;
-    if (S.attivo) stato(azzera ? INVITO : 'Continuo a leggere…');
+    if (S.attivo) stato(azzera ? invito() : 'Continuo a leggere…');
   }
   $('#altro').addEventListener('click', () => chiudiScheda(schedaDaCodice));
-  $('#leggi-ingr').addEventListener('click', () => { chiudiScheda(true); stato('Ora inquadra gli ingredienti'); });
+  $('#leggi-ingr').addEventListener('click', () => { chiudiScheda(true); impostaModo('ingredienti'); });
   $('#velo').addEventListener('click', () => chiudiScheda(schedaDaCodice));
 
   // ---------------------------------------------------------------------------

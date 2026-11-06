@@ -202,3 +202,31 @@ button, summary, a, input, textarea { touch-action: manipulation; }
 ::selection { background: #cfe2ff; color: #0b3c7a; }
 .manuale summary, details.dett summary { min-height: 44px; display: flex; align-items: center; }
 .link { min-height: 44px; }
+
+/* =========================================================================
+   DUE MODALITÀ: CODICE A BARRE (predefinita) / INGREDIENTI
+   ========================================================================= */
+.modi {
+  position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(0,0,0,.6) 30%);
+}
+.modo {
+  min-height: 64px; border: 0; border-radius: 16px; font-size: 18px; font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: rgba(255,255,255,.16); color: #fff; padding: 8px;
+}
+.modo svg { width: 30px; height: 24px; }
+.modo.attivo { background: #fff; color: var(--fondo); box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+
+/* il mirino cambia forma: stretto per il codice, grande per gli ingredienti */
+.mirino-wrap { top: calc(64px + env(safe-area-inset-top)); bottom: calc(100px + env(safe-area-inset-bottom)); inset-inline: 0; padding-bottom: 0; }
+.mirino { transition: width .25s ease-out, height .25s ease-out; }
+.camera.modo-codice .mirino { width: 84vw; max-width: 460px; height: 24vh; max-height: 220px; }
+.camera.modo-ingredienti .mirino-wrap { align-items: flex-start; padding-top: 6px; }
+.camera.modo-ingredienti .mirino { width: 92vw; max-width: 560px; height: 46vh; max-height: 520px; }
+.camera.modo-ingredienti .laser { display: none; }
+.live { bottom: calc(100px + env(safe-area-inset-bottom)); max-height: 34vh; }
+.carica-ocr { bottom: calc(108px + env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) { .mirino { transition: none; } }
+.camera.modo-codice .carica-ocr, .camera.modo-codice .live { display: none; }

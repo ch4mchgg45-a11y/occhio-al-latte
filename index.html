@@ -70,6 +70,18 @@
       </div>
     </div>
     <div id="carica-ocr" class="carica-ocr" hidden>Preparo la lettura del testo… <span id="ocr-perc"></span></div>
+
+    <!-- scelta: codice a barre oppure ingredienti -->
+    <div class="modi" role="group" aria-label="Cosa vuoi inquadrare">
+      <button id="modo-codice" class="modo attivo" aria-pressed="true">
+        <svg viewBox="0 0 32 24" aria-hidden="true"><g fill="currentColor"><rect x="1" y="2" width="2" height="20"/><rect x="5" y="2" width="1" height="20"/><rect x="8" y="2" width="3" height="20"/><rect x="13" y="2" width="1" height="20"/><rect x="16" y="2" width="2" height="20"/><rect x="20" y="2" width="1" height="20"/><rect x="23" y="2" width="3" height="20"/><rect x="28" y="2" width="1" height="20"/><rect x="30" y="2" width="1" height="20"/></g></svg>
+        Codice a barre
+      </button>
+      <button id="modo-ingredienti" class="modo" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h8M9 15h8M9 19h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Ingredienti
+      </button>
+    </div>
   </section>
 
   <!-- SCHEDA RISULTATO -->
