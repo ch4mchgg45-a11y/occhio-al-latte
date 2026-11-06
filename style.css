@@ -181,3 +181,6 @@ details.dett summary { cursor: pointer; color: #4a5866; font-size: 15px; margin-
 .voce small { font-size: 15px; }
 .prodotto .nome { font-size: 21px; }
 .scheda .btn.grande:not(.chiaro) { background: #1f6fd1; color: #fff; font-size: 21px; }
+/* la parola grande si adatta allo schermo (ATTENZIONE è lunga) */
+.verdetto .parola { font-size: clamp(30px, 11vw, 52px); overflow-wrap: anywhere; }
+.live-verdetto .parola { font-size: clamp(24px, 8.5vw, 34px); }
