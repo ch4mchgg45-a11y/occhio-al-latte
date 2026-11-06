@@ -12,7 +12,7 @@
   const NON_LATTE = [
     ['burro di (cacao|karite|arachid[ie]|mandorl[ae]|nocciol[ae]|anacardi|cocco|pistacchi[o]?|semi|frutta secca|girasole|sesamo|soia|cupuacu|mango|illipe)', 'Burro vegetale: non è latte'],
     ['latte di (cocco|mandorl[ae]|soia|riso|avena|nocciol[ae]|anacardi|canapa|farro|miglio|kamut|quinoa|piselli|cocc?o)', 'Bevanda vegetale: non è latte'],
-    ['latte vegetale|bevanda (vegetale|a base di [a-z]+)', 'Bevanda vegetale: non è latte'],
+    ['latte vegetale|bevanda (vegetale|a base di (soia|riso|avena|mandorl[ae]|cocco|nocciol[ae]|anacardi|farro|miglio|canapa|kamut|quinoa|piselli))', 'Bevanda vegetale: non è latte'],
     ['(crema|panna) di (cocco|riso|soia|avena|mandorl[ae])', 'Crema vegetale: non è latte'],
     ['formagg(io|i) (vegan[oi]|vegetal[ei])', 'Formaggio vegetale: non è latte'],
     ['acido lattico|lattat[oi]|lattilat[oi]|stearoil[- ]?\\d?[- ]?lattilato|glucono[- ]?delta[- ]?lattone|lattoni?\\b|lattug[ah]\\w*|lattughin[oi]', 'Non è latte (solo il nome somiglia)'],

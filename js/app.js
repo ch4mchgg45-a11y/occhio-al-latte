@@ -8,8 +8,8 @@
   const S = {
     stream: null, attivo: false, pausa: false,
     timerCodice: null, lettore: null, hints: null, giro: 0,
-    ocr: null, ocrPronto: false, ocrInCorso: false, ocrAcc: null,
-    ultimoCodice: null,
+    ocr: null, ocrPronto: false, ocrAcc: null,
+    ultimoCodice: null, giroCamera: 0, ricerca: 0,
   };
 
   // ---------------------------------------------------------------------------
@@ -67,6 +67,8 @@
         : 'Non riesco ad aprire la fotocamera (' + (e && e.name || 'errore') + ').');
     }
     video.srcObject = S.stream;
+    $('#inizio').hidden = true;
+    $('#camera').hidden = false;   // prima di play(): iPhone non avvia un video nascosto
     try { await video.play(); } catch (_) { /* iOS a volte parte da solo */ }
     const traccia = S.stream.getVideoTracks()[0];
     try { await traccia.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
@@ -75,10 +77,9 @@
       $('#torcia').hidden = !cap.torch;
     } catch (_) {}
 
-    $('#inizio').hidden = true;
-    $('#camera').hidden = false;
     try { localStorage.setItem('camera-ok', '1'); } catch (_) {}
     S.attivo = true; S.pausa = false;
+    S.giroCamera++;
     azzeraLettura();
     stato(INVITO);
     avviaCodici();
@@ -189,20 +190,34 @@
   const CAMPI = 'code,product_name,product_name_it,generic_name_it,brands,allergens_tags,traces_tags,labels_tags,' +
     'ingredients_text_it,ingredients_text,ingredients_analysis_tags,image_front_small_url';
 
+  async function chiediProdotto(codice) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+    try {
+      const res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(codice) + '.json?fields=' + CAMPI, { signal: ctrl.signal });
+      if (res.status === 404) return { status: 0 };
+      if (!res.ok) throw Object.assign(new Error('server'), { server: true });
+      return await res.json();
+    } finally { clearTimeout(t); }
+  }
+
   async function cercaProdotto(codice) {
+    const mia = ++S.ricerca;          // se nel frattempo si cerca un altro prodotto, questa risposta va ignorata
     S.ultimoCodice = codice;
     apriScheda('<div class="attesa"><div class="rotella"></div>Cerco il prodotto…<br><small>' + esc(codice) + '</small></div>', true);
     let dati;
     try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 12000);
-      const res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(codice) + '.json?fields=' + CAMPI, { signal: ctrl.signal });
-      clearTimeout(t);
-      dati = await res.json();
+      // i codici europei che iniziano con 0 a volte vengono letti a 12 cifre
+      dati = await chiediProdotto(codice.length === 12 ? '0' + codice : codice);
+      if ((!dati || dati.status !== 1) && codice.length === 12) dati = await chiediProdotto(codice);
     } catch (e) {
-      return apriScheda(schedaVerdetto({ livello: 'grigio', titolo: 'Niente internet', sotto: 'Non riesco a cercare il prodotto. Puoi inquadrare gli ingredienti.' }) +
+      if (mia !== S.ricerca) return;
+      const server = e && e.server;
+      return apriScheda(schedaVerdetto({ livello: 'grigio', titolo: server ? 'Archivio non raggiungibile' : 'Niente internet',
+        sotto: (server ? 'Riprova tra poco.' : 'Non riesco a cercare il prodotto.') + ' Intanto puoi inquadrare gli ingredienti.' }) +
         '<p class="fonte">Codice: ' + esc(codice) + '</p>', true);
     }
+    if (mia !== S.ricerca) return;
     if (!dati || dati.status !== 1 || !dati.product) {
       return apriScheda(schedaVerdetto({ livello: 'grigio', titolo: 'Prodotto non trovato', sotto: 'Questo codice non è nell\'archivio. Inquadra gli ingredienti sulla confezione.' }) +
         '<p class="fonte">Codice: ' + esc(codice) + '</p>', true);
@@ -271,33 +286,34 @@
       S.ocrPronto = true;
     } catch (e) {
       S.ocr = null;
-      stato('Lettura testo non disponibile (serve internet la prima volta)');
+      ocrPromessa = null;   // la prossima volta riprova
     }
     $('#carica-ocr').hidden = true;
   }
 
+  const telaOcr = document.createElement('canvas');
+  const ctxOcr = telaOcr.getContext('2d', { willReadFrequently: true });
+
   async function avviaOcr() {
+    const giro = S.giroCamera;      // ogni apertura della fotocamera ha il suo ciclo
     await preparaOcr();
-    if (!S.ocrPronto || S.ocrInCorso) return;
-    S.ocrInCorso = true;
-    while (S.attivo) {
+    if (giro !== S.giroCamera || !S.attivo) return;
+    if (!S.ocrPronto) { stato('Leggo solo i codici a barre (manca internet per il testo)'); return; }
+    while (S.attivo && giro === S.giroCamera) {
       if (S.pausa || document.hidden) { await attendi(300); continue; }
       const z = zonaTesto();
       if (!z) { await attendi(300); continue; }
       // ritaglio del mirino, ingrandito e in bianco e nero per leggere meglio
-      const c = document.createElement('canvas');
       const scala = Math.min(2, 1400 / z.w);
-      c.width = Math.round(z.w * scala); c.height = Math.round(z.h * scala);
-      const cx = c.getContext('2d', { willReadFrequently: true });
-      cx.filter = 'grayscale(1) contrast(1.35)';
-      cx.drawImage(video, z.x, z.y, z.w, z.h, 0, 0, c.width, c.height);
+      telaOcr.width = Math.round(z.w * scala); telaOcr.height = Math.round(z.h * scala);
+      ctxOcr.filter = 'grayscale(1) contrast(1.35)';
+      ctxOcr.drawImage(video, z.x, z.y, z.w, z.h, 0, 0, telaOcr.width, telaOcr.height);
       try {
-        const { data } = await S.ocr.recognize(c);
-        if (S.attivo && !S.pausa) unisciLettura(data.text || '');
+        const { data } = await S.ocr.recognize(telaOcr);
+        if (S.attivo && !S.pausa && giro === S.giroCamera) unisciLettura(data.text || '');
       } catch (_) {}
       await attendi(250);
     }
-    S.ocrInCorso = false;
   }
 
   function azzeraLettura() {
@@ -365,11 +381,12 @@
     schedaDaCodice = daCodice;
     $('#scheda-contenuto').innerHTML = html;
     $('#leggi-ingr').hidden = !daCodice || !S.attivo;
-    $('#altro').textContent = S.attivo ? (daCodice ? 'Scansiona un altro' : 'Torna alla fotocamera') : 'Chiudi';
+    $('#altro').textContent = S.attivo ? (daCodice ? 'Controlla un altro prodotto' : 'Torna alla fotocamera') : 'Chiudi';
     $('#velo').hidden = false; $('#scheda').hidden = false;
     $('#scheda').scrollTop = 0;
   }
   function chiudiScheda(azzera) {
+    S.ricerca++;   // una ricerca ancora in corso non deve più aprire la scheda
     $('#velo').hidden = true; $('#scheda').hidden = true;
     if (azzera) azzeraLettura();
     S.pausa = false;
